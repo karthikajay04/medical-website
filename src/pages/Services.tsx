@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { ArrowRight, Microscope, Scan, Pill, CalendarClock, Clock, Building, GraduationCap } from 'lucide-react';
 
 const facilities = [
@@ -193,10 +193,10 @@ export default function Services() {
           <p className="font-inter text-gray-400 max-w-2xl mx-auto mb-10 text-lg">
             Walk-ins are always welcome, but booking ahead ensures you see our specialists without the wait.
           </p>
-          <button className="bg-white text-black rounded-full px-10 py-4 text-base font-inter hover:scale-105 transition-transform duration-300 ease-out flex items-center justify-center gap-2 mx-auto">
+          <Link to="/book" className="bg-white text-black rounded-full px-10 py-4 text-base font-inter hover:scale-105 transition-transform duration-300 ease-out flex items-center justify-center gap-2 mx-auto">
             Book an Appointment
             <ArrowRight className="w-5 h-5" />
-          </button>
+          </Link>
         </div>
       </div>
 

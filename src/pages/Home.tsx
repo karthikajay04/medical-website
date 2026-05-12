@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -94,13 +95,13 @@ export default function Home() {
           A sanctuary where advanced medical care meets compassionate healing. We bridge the gap between leading specialists and your well-being, ensuring every step of your health journey is supported by expertise and care.
         </p>
 
-        <button className="flex items-center justify-center gap-2 bg-black text-white rounded-full px-14 py-5 text-base mt-12 font-inter hover:scale-103 transition-transform duration-300 ease-out opacity-0 animate-fade-rise-delay-2">
+        <Link to="/book" className="flex items-center justify-center gap-2 bg-black text-white rounded-full px-14 py-5 text-base mt-12 font-inter hover:scale-103 transition-transform duration-300 ease-out opacity-0 animate-fade-rise-delay-2">
           Book an Appointment
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14" />
             <path d="m12 5 7 7-7 7" />
           </svg>
-        </button>
+        </Link>
       </main>
     </>
   );

@@ -7,16 +7,25 @@ import Contact from './pages/Contact';
 import About from './pages/About';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import LiveQueue from './pages/LiveQueue';
+import Booking from './pages/Booking';
+import AdminLayout from './pages/admin/AdminLayout';
+import Dashboard from './pages/admin/Dashboard';
+import Doctors from './pages/admin/Doctors';
+import Bookings from './pages/admin/Bookings';
+import Availability from './pages/admin/Availability';
+import Settings from './pages/admin/Settings';
 import { Banner } from '@/components/ui/banner';
 import './App.css';
 
 function AppContent() {
   const location = useLocation();
   const isAuthPage = ['/login', '/signup'].includes(location.pathname);
+  const isAdminPage = location.pathname.startsWith('/admin');
 
   return (
     <div className="relative min-h-screen w-full bg-white text-black flex flex-col font-inter">
-      {!isAuthPage && (
+      {!isAuthPage && !isAdminPage && (
         <>
           <Banner
             id="top-banner"
@@ -48,6 +57,18 @@ function AppContent() {
           <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/live-queue" element={<LiveQueue />} />
+          <Route path="/book" element={<Booking />} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="doctors" element={<Doctors />} />
+            <Route path="bookings" element={<Bookings />} />
+            <Route path="availability" element={<Availability />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
         </Routes>
       </div>
     </div>

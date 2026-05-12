@@ -1,4 +1,4 @@
-import { Users, Heart, Shield, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { TestimonialCarousel } from '@/components/ui/profile-card-testimonial-carousel';
 import { AnimatedTestimonials } from '@/components/ui/animated-testimonials';
 
