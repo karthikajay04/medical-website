@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String    // Hashed
+  name      String
+  phone     String
+  role      String    @default("PATIENT") // PATIENT | ADMIN | DOCTOR
+  doctorId  String?   @unique
+  doctor    Doctor?   @relation(fields: [doctorId], references: [id])
+  bookings  Booking[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Doctor {
+  id             String           @id @default(uuid())
+  name           String
+  specialty      String
+  availability   String           // e.g. "Mon - Sat"
+  image          String           // Image URL
+  status         String           @default("Serving") // Serving | On Break | Coming Soon | Inactive
+  type           String           @default("General") // General | Visiting
+  currentToken   Int              @default(0)         // The active token number currently being served
+  bookings       Booking[]
+  schedules      DoctorSchedule[]
+  customLeaves   CustomLeave[]
+  user           User?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model Booking {
+  id               String    @id @default(uuid())
+  bookingRef       String    @unique // Code like ATH-XXXXXX
+  tokenNumber      Int       // Consecutively assigned token number (1, 2, 3, etc. for doctor + date)
+  date             String    // Booking date formatted as YYYY-MM-DD
+  estimatedTime    String    // e.g., "11:45 AM"
+  patientName      String
+  patientPhone     String
+  patientAge       String?   // Patient age (optional)
+  reason           String?
+  status           String    @default("Pending") // Pending | Completed | Cancelled
+  vitals           String?   // BP, Pulse, Temperature, etc.
+  diagnosis        String?   // Symptoms, medical diagnosis
+  prescriptionMeds String?   // Prescribed medicines in JSON format
+  prescriptionNotes String?  // Optional doctor remarks or follow-up instructions
+  userId           String?   // Optional: link to registered user
+  user             User?     @relation(fields: [userId], references: [id])
+  doctorId         String
+  doctor           Doctor    @relation(fields: [doctorId], references: [id])
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model DoctorSchedule {
+  id        String   @id @default(uuid())
+  doctorId  String
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  day       String   // "Monday", "Tuesday", etc.
+  startTime String   // "09:00"
+  endTime   String   // "14:00"
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([doctorId, day])
+}
+
+model CustomLeave {
+  id        String   @id @default(uuid())
+  doctorId  String
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dateRange String   // "May 25, 2026" or "June 10-12, 2026"
+  reason    String   // "Public Holiday" or "Conference"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ClinicSettings {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

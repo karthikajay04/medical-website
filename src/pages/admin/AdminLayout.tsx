@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
@@ -11,11 +11,37 @@ import {
   Bell,
   Search
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const AdminLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [adminUser, setAdminUser] = useState<any>(null);
+
+  // Security layer: enforce ADMIN role
+  useEffect(() => {
+    const token = localStorage.getItem('aethera_token');
+    const userStr = localStorage.getItem('aethera_user');
+    let user = null;
+    try {
+      user = userStr ? JSON.parse(userStr) : null;
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (!token || !user || user.role !== 'ADMIN') {
+      navigate('/login');
+    } else {
+      setAdminUser(user);
+    }
+  }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('aethera_token');
+    localStorage.removeItem('aethera_user');
+    navigate('/login');
+  };
 
   const navigation = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -33,9 +59,9 @@ const AdminLayout = () => {
           <div className="flex items-center flex-shrink-0 px-6">
             <Link to="/" className="flex items-center gap-2">
               <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">M</span>
+                <span className="text-white font-bold text-xl">A</span>
               </div>
-              <span className="text-xl font-bold tracking-tight text-gray-900">AdminPanel</span>
+              <span className="text-xl font-bold tracking-tight text-gray-900">AetheraAdmin</span>
             </Link>
           </div>
           <nav className="mt-8 flex-1 px-3 space-y-1">
@@ -59,7 +85,10 @@ const AdminLayout = () => {
           </nav>
         </div>
         <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-          <button className="flex-shrink-0 w-full group flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors">
+          <button 
+            onClick={handleLogout}
+            className="flex-shrink-0 w-full group flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
             <LogOut className="mr-3 h-5 w-5 text-gray-400 group-hover:text-red-500" />
             Logout
           </button>
@@ -80,9 +109,9 @@ const AdminLayout = () => {
           <div className="flex items-center justify-between px-6">
             <Link to="/" className="flex items-center gap-2">
               <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">M</span>
+                <span className="text-white font-bold text-xl">A</span>
               </div>
-              <span className="text-xl font-bold tracking-tight text-gray-900">AdminPanel</span>
+              <span className="text-xl font-bold tracking-tight text-gray-900">AetheraAdmin</span>
             </Link>
             <button onClick={() => setIsMobileMenuOpen(false)}>
               <X className="h-6 w-6 text-gray-500" />
@@ -108,6 +137,15 @@ const AdminLayout = () => {
               );
             })}
           </nav>
+        </div>
+        <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+          <button 
+            onClick={handleLogout}
+            className="flex-shrink-0 w-full group flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+            <LogOut className="mr-3 h-5 w-5 text-gray-400 group-hover:text-red-500" />
+            Logout
+          </button>
         </div>
       </aside>
 
@@ -145,11 +183,11 @@ const AdminLayout = () => {
               </button>
               <div className="flex items-center gap-3 ml-2 pl-4 border-l border-gray-200">
                 <div className="hidden md:block text-right">
-                  <p className="text-sm font-semibold text-gray-900 leading-none">Admin User</p>
+                  <p className="text-sm font-semibold text-gray-900 leading-none">{adminUser?.name || 'Admin User'}</p>
                   <p className="text-xs text-gray-500 mt-1">Super Admin</p>
                 </div>
                 <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#C8A96B] to-[#E5D2A8] border-2 border-white shadow-sm flex items-center justify-center text-white font-bold">
-                  A
+                  {(adminUser?.name || 'A')[0]}
                 </div>
               </div>
             </div>

@@ -1,14 +1,31 @@
 "use client";
 
 import { AuthSignupSplitScreen } from "@/components/ui/signup";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { api } from "@/lib/api";
 
 export default function Signup() {
+  const navigate = useNavigate();
+
   const handleSignup = async (data: any) => {
-    console.log("Signup submitted with:", data);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    alert("Signup feature coming soon!");
+    try {
+      const response = await api.post<{ token: string; user: { id: string; email: string; name: string; role: string } }>('/auth/signup', {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+      });
+
+      // Save token & user details
+      localStorage.setItem('aethera_token', response.token);
+      localStorage.setItem('aethera_user', JSON.stringify(response.user));
+
+      alert('Account successfully created!');
+      navigate('/');
+    } catch (error: any) {
+      alert(error.message || 'Signup failed. Please try again.');
+      throw error;
+    }
   };
 
   return (

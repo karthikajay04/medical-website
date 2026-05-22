@@ -1,15 +1,36 @@
 "use client";
 
 import { AuthFormSplitScreen } from "@/components/ui/login";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { api } from "@/lib/api";
 
 export default function Login() {
+  const navigate = useNavigate();
+
   const handleLogin = async (data: any) => {
-    console.log("Form submitted with:", data);
-    // Simulate network request
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    alert("Login feature coming soon!");
+    try {
+      const response = await api.post<{ token: string; user: { id: string; email: string; name: string; role: string } }>('/auth/login', {
+        email: data.email,
+        password: data.password,
+      });
+
+      // Save token & user details
+      localStorage.setItem('aethera_token', response.token);
+      localStorage.setItem('aethera_user', JSON.stringify(response.user));
+
+      // Direct based on user role
+      if (response.user.role === 'ADMIN') {
+        navigate('/admin/dashboard');
+      } else if (response.user.role === 'DOCTOR') {
+        navigate('/doctor/dashboard');
+      } else {
+        navigate('/');
+      }
+    } catch (error: any) {
+      alert(error.message || 'Login failed. Please verify your credentials.');
+      throw error;
+    }
   };
 
   return (

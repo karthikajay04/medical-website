@@ -15,6 +15,8 @@ import Doctors from './pages/admin/Doctors';
 import Bookings from './pages/admin/Bookings';
 import Availability from './pages/admin/Availability';
 import Settings from './pages/admin/Settings';
+import DoctorLayout from './pages/doctor/DoctorLayout';
+import DoctorDashboard from './pages/doctor/Dashboard';
 import { Banner } from '@/components/ui/banner';
 import './App.css';
 
@@ -22,10 +24,11 @@ function AppContent() {
   const location = useLocation();
   const isAuthPage = ['/login', '/signup'].includes(location.pathname);
   const isAdminPage = location.pathname.startsWith('/admin');
+  const isDoctorPage = location.pathname.startsWith('/doctor');
 
   return (
     <div className="relative min-h-screen w-full bg-white text-black flex flex-col font-inter">
-      {!isAuthPage && !isAdminPage && (
+      {!isAuthPage && !isAdminPage && !isDoctorPage && (
         <>
           <Banner
             id="top-banner"
@@ -68,6 +71,12 @@ function AppContent() {
             <Route path="bookings" element={<Bookings />} />
             <Route path="availability" element={<Availability />} />
             <Route path="settings" element={<Settings />} />
+          </Route>
+
+          {/* Doctor Routes */}
+          <Route path="/doctor" element={<DoctorLayout />}>
+            <Route index element={<DoctorDashboard />} />
+            <Route path="dashboard" element={<DoctorDashboard />} />
           </Route>
         </Routes>
       </div>
