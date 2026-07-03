@@ -1,211 +1,241 @@
-# Aethera Clinic Management Suite
+# Aethera — Clinic Management Suite
 
-Aethera is a premium, high-fidelity, real-time healthcare clinic management system. It provides patients with an elegant online appointment scheduler, gives physicians a digital vitals and prescription desk, displays a live token waitlist board in waiting rooms, and equips administrative staff with a pixel-perfect, dynamic Rx prescription printing studio.
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Prisma-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](#license)
 
-The application is engineered with a modern, glassmorphic design language featuring deep clinical teals (`#0B2C24`), premium gold accents (`#C8A96B`), and fluid typography utilizing Google Fonts (Instrument Serif and Outfit/Inter).
+A real-time clinic management platform with three role-scoped dashboards — patient booking, physician clinical desk, and admin reception — kept in sync across screens using Server-Sent Events. Built to replace the manual token-and-register workflow small clinics still run on.
+
+**Live demo:** _add your deployed URL here once hosted_
+**Demo video / GIF:** _add a 20–30s screen recording here — this matters more than any paragraph of description_
 
 ---
 
-## 🗺️ System Architecture
+## Table of Contents
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Setup & Installation](#setup--installation)
+- [Demo Accounts](#demo-accounts-development-only)
+- [API Reference](#api-reference)
+- [License](#license)
 
-The suite operates on a multi-role pipeline synchronized instantly via **Server-Sent Events (SSE)** telemetry. When a patient schedules a visit or a physician completes a consultation, waiting-room monitors, front-desks, and booking queues reflect the status change instantly.
+---
+
+## Screenshots
+
+
+### 🖥️ Landing & Services
+| Home Page | Services & Facilities |
+| :---: | :---: |
+| ![Home Page](public/screenshorts/img1.png) | ![Services & Facilities](public/screenshorts/img2.png) |
+
+### 📅 Visiting Schedule
+![Visiting Schedule](public/screenshorts/img3.png)
+
+### ⏱️ Live Queue Status
+![Live Queue Status](public/screenshorts/img4.png)
+
+### 🏥 About Aethera
+![About Aethera](public/screenshorts/img5.png)
+
+
+---
+
+## Features
+
+**Patient Portal**
+- Calendar-based booking across specialists (General Physician, Pediatrics, Orthopedics, Gynecology, Dermatology)
+- Automatic token assignment per doctor per day
+- Estimated wait-time calculation based on queue position
+
+**Live Waiting-Room Display**
+- Real-time "now serving" board driven by SSE, no polling
+- Highlights the active token for visibility across the room
+
+**Doctor's Clinical Desk**
+- Per-doctor queue and patient history view
+- Vitals capture (BP, temperature, pulse, SpO2)
+- Structured prescription builder (medication, dosage, schedule, duration)
+- Saving a consultation updates status and pushes an SSE event to reception/waiting-room clients
+
+**Admin / Reception**
+- Clinic profile and announcement management
+- Split-pane prescription editor with print-ready preview
+- Manual booking status overrides (Pending / Completed / Cancelled)
+
+---
+
+## Architecture
+
+Three client roles talk to a single Express API over REST (JWT-authenticated). Booking and consultation writes are pushed out to subscribed clients over a Server-Sent Events channel, so the waiting-room board and reception screen update without a refresh.
 
 ```mermaid
-graph TD
-    %% Roles & Ports
-    P[Patient / Guest] -->|Book Appointment| B[Schedule Scheduler]
-    B -->|PostgreSQL Record| DB[(aethera DB)]
-    
-    DB -->|Fetch Roster| DR[Doctor Workspace]
-    DR -->|Log Vitals & Rx| DB
-    DR -->|SSE Queue Broadcast| SSE[SSE Telemetry Hub]
-    
-    SSE -->|Real-time Token Sync| LQ[Live Waitlist Board]
-    SSE -->|Roster Sync| AD[Admin Reception Dashboard]
-    
-    AD -->|Auto-populates Rx| PS[Rx Slip Printing Studio]
+flowchart LR
+    subgraph Clients
+        P[Patient Portal]
+        D[Doctor Desk]
+        A[Admin / Reception]
+        W[Waiting Room Display]
+    end
+
+    P -- REST + JWT --> API[Express API]
+    D -- REST + JWT --> API
+    A -- REST + JWT --> API
+
+    API --> DB[(PostgreSQL via Prisma)]
+    API -- SSE stream --> W
+    API -- SSE stream --> A
+
+    subgraph Backend
+        API
+        DB
+    end
 ```
 
----
-
-## 💎 Key Capabilities & Workflows
-
-### 1. Patient Portal & Booking
-* **Visual Calendar Scheduling:** Browse visiting times of medical specialists (General Physicians, Pediatricians, Orthopedics, Gynecologists, and Dermatologists).
-* **Smart Token System:** Appointments are systematically assigned consecutive token numbers for each doctor and date.
-* **Estimated Wait-Time Engine:** Calculates and displays estimated check-in times to minimize crowded lobbies.
-
-### 2. Live Waiting-Room Display
-* **Dynamic Wait Board:** Shows currently serving token numbers, total booked counts, and active patient listings.
-* **Flashing Status Cards:** Visually highlights active patient tokens to alert visitors waiting in the lobby.
-
-### 3. Doctor's Clinical Desk
-* **Queue Roster Sidebar:** Doctors can view their active queues and review histories.
-* **Case Sheet:** Access patient specifics, reason for visit, and booking reference codes.
-* **Vitals Terminal:** Input key telemetry: Blood Pressure (mmHg), Temperature (°F), Pulse Rate (bpm), and SpO2 (%).
-* **Custom Rx Formulator:** Interactive row builder to configure medication names, strengths, intake schedules, and lengths.
-* **Instant Wait-Time Sync:** Saving updates transitions the booking status to `Completed` and broadcasts SSE telemetry to receptionist screens.
-
-### 4. Admin Reception & Rx Studio
-* **Clinic Customizer:** Update clinic name, address, phone number, and announcements.
-* **Split-pane Rx Studio:**
-  * **Interactive Builder (Left):** Real-time editor to update patient age, name, and modify medications.
-  * **Aesthetic Preview (Right):** Visualizes the printed layout containing serif-styled clinic letters, patient particulars, vitals, doctor notes, and dynamic signature blocks.
-  * **Native Print Driver:** Triggers high-fidelity CSS media query printing.
+**Why SSE instead of WebSockets:** updates are one-directional (server → client) — clients never need to push data back over the same channel — so SSE gives the real-time behavior needed here with a simpler connection model than a full WebSocket setup.
 
 ---
 
-## 🛠️ Technology Stack
+## Tech Stack
 
-| Component | Technology | Description |
-| :--- | :--- | :--- |
-| **Frontend Core** | React 18, TypeScript, Vite | Ultra-fast SPA scaffolding with HMR. |
-| **Styling** | Tailwind CSS | Sleek custom panels and layouts. |
-| **Database ORM** | Prisma | Schema definitions and migrations. |
-| **Backend Core** | Node.js, Express, TypeScript | RESTful routes with TSX watch engines. |
-| **Database** | PostgreSQL | Relational transactional database. |
-| **Real-time Sync** | Server-Sent Events (SSE) | Unidirectional event telemetry. |
-| **Validation** | Zod | Robust frontend & backend request validation. |
+| Layer | Technology | Notes |
+|---|---|---|
+| Frontend | React 18, TypeScript, Vite | SPA with HMR |
+| Styling | Tailwind CSS | |
+| Backend | Node.js, Express, TypeScript | REST API |
+| ORM | Prisma | Schema + migrations |
+| Database | PostgreSQL | |
+| Real-time | Server-Sent Events | Unidirectional event stream for queue/status updates |
+| Validation | Zod | Request validation, frontend and backend |
+| Auth | JWT | Role-based access (patient / doctor / admin) |
 
 ---
 
-## 📂 Project Directory Structure
+## Project Structure
 
-```text
-├── server/                    # Node.js Express Backend
+```
+├── server/                    # Express backend
 │   ├── prisma/
-│   │   ├── schema.prisma      # Prisma database schemas
-│   │   └── seed.ts            # Database seed script
+│   │   ├── schema.prisma      # Database schema
+│   │   └── seed.ts            # Seed script
 │   ├── src/
 │   │   ├── lib/
-│   │   │   ├── prisma.ts      # Instantiated Prisma Client
-│   │   │   └── sse.ts         # SSE queue broadcast manager
+│   │   │   ├── prisma.ts      # Prisma client instance
+│   │   │   └── sse.ts         # SSE broadcast manager
 │   │   ├── middleware/
-│   │   │   └── auth.ts        # JWT and Admin privilege checks
+│   │   │   └── auth.ts        # JWT + role checks
 │   │   ├── routes/
-│   │   │   ├── auth.ts        # Signup / Login / Me endpoints
-│   │   │   ├── bookings.ts    # Clinical consultations & printing routes
-│   │   │   ├── doctors.ts     # Specialist directories
-│   │   │   ├── queue.ts       # SSE event client registrations
-│   │   │   └── settings.ts    # Clinic configurations
-│   │   └── index.ts           # App entrypoint
-│   ├── package.json
-│   └── tsconfig.json
+│   │   │   ├── auth.ts
+│   │   │   ├── bookings.ts
+│   │   │   ├── doctors.ts
+│   │   │   ├── queue.ts
+│   │   │   └── settings.ts
+│   │   └── index.ts
+│   └── package.json
 │
-└── src/                       # React TypeScript Frontend
-    ├── assets/                # Media files and global CSS
+└── src/                       # React frontend
     ├── components/
-    │   ├── ui/                # UI controls (cards, banners)
-    │   └── Navbar.tsx         # Unified navigation header
     ├── lib/
-    │   └── api.ts             # Axios HTTP client configuration
+    │   └── api.ts              # Axios client config
     ├── pages/
-    │   ├── admin/
-    │   │   ├── AdminLayout.tsx # Administrative sidebar & security check
-    │   │   ├── Bookings.tsx   # Prescription Print Modal & appointment roster
-    │   │   ├── Dashboard.tsx  # Analytics charts and serving tokens
-    │   │   ├── Doctors.tsx    # Specialist rosters
-    │   │   ├── Availability.tsx # Calendar schedules
-    │   │   └── Settings.tsx   # Clinic name & announcement controls
-    │   ├── doctor/
-    │   │   ├── DoctorLayout.tsx # Physician dashboard frame & security check
-    │   │   └── Dashboard.tsx  # Interactive vitals, diagnosis, and Rx writer
-    │   ├── About.tsx          # Specialist profiles & WhatsApp CTAs
-    │   ├── Booking.tsx        # Multi-step scheduler
-    │   ├── Contact.tsx        # Dynamic support page
-    │   ├── Home.tsx           # Fullscreen cinematic hero landing
-    │   ├── LiveQueue.tsx      # Lobby waiting-room board
-    │   ├── Login.tsx          # Split-screen auth form
-    │   └── Signup.tsx         # Patient sign-up page
-    ├── App.tsx                # Page router
-    └── main.tsx               # SPA entry point
+    │   ├── admin/               # Dashboard, Bookings, Doctors, Availability, Settings
+    │   ├── doctor/               # Dashboard (vitals + Rx writer)
+    │   ├── Booking.tsx
+    │   ├── LiveQueue.tsx
+    │   ├── Login.tsx / Signup.tsx
+    │   └── Home.tsx / About.tsx / Contact.tsx
+    └── App.tsx
 ```
 
 ---
 
-## 🚀 Setup & Installation
+## Setup & Installation
 
-### Prerequisites
-* **Node.js:** v16.x or newer
-* **PostgreSQL Database:** Running locally or hosted on an external server
+**Prerequisites:** Node.js v16+, a running PostgreSQL instance.
 
-### 1. Database & Environment Configuration
-1. Create a local PostgreSQL database named `aethera`.
-2. Navigate to the `server` directory:
-   ```bash
-   cd server
-   ```
-3. Create a `.env` file in the `server` root:
-   ```env
-   PORT=5000
-   DATABASE_URL="postgresql://postgres:yourpassword@127.0.0.1:5432/aethera?schema=public"
-   JWT_SECRET="aethera_super_secret_jwt_token_key_2026"
-   ```
+### 1. Backend
 
-### 2. Backend Initialization & Database Seeding
-Navigate to the `server` folder, install backend packages, push the database schema, and seed the database with initial clinical data:
 ```bash
-# Install server packages
-npm install
+cd server
+```
 
-# Push database schema & generate Prisma Client
+Create `server/.env`:
+
+```
+PORT=5000
+DATABASE_URL="postgresql://<user>:<password>@127.0.0.1:5432/aethera?schema=public"
+JWT_SECRET="<generate-a-random-secret-do-not-reuse-this-example>"
+```
+
+```bash
+npm install
 npx prisma db push
-
-# Seed database with initial clinics, doctors, and active bookings
 npm run prisma:seed
-
-# Start Node.js Express server
 npm run dev
 ```
-The server will boot and run at `http://localhost:5000`.
 
-### 3. Frontend Scaffolding & Launch
-Open a new terminal window in the project root directory:
+Server runs on `http://localhost:5000`.
+
+### 2. Frontend
+
 ```bash
-# Install frontend packages
 npm install
-
-# Start Vite React server
 npm run dev
 ```
-Open your browser and navigate to `http://localhost:5173`.
+
+App runs on `http://localhost:5173`.
 
 ---
 
-## 🔐 Seeded Accounts for Testing
+## Demo Accounts (development only)
 
-Use these seeded accounts to test the clinic workspace:
+> ⚠️ These accounts exist only in the seeded local/demo database for evaluation purposes. They are never used in a real deployment, and the passwords below are intentionally simple placeholders — replace `JWT_SECRET` and all credentials before deploying anywhere public.
 
-| Role | Email | Password | Details |
-| :--- | :--- | :--- | :--- |
-| **Super Admin** | `admin@aethera.com` | `adminpassword` | Full receptionist dashboard, active token adjustments, and printed prescription slips. |
-| **Physician Desk** | `doctor@aethera.com` | `doctorpassword` | Assigned to **Dr. Robert Chen** (General Physician). Access to vitals records, case notes, and Rx formulator. |
-| **Patient Profile** | `patient@aethera.com` | `patientpassword` | Renders a personalized profile dashboard where users can check booked appointments. |
+| Role | Email | Password | Access |
+|---|---|---|---|
+| Admin | `admin@aethera.com` | `adminpassword` | Full reception dashboard, token overrides, prescription printing |
+| Doctor | `doctor@aethera.com` | `doctorpassword` | Vitals, case notes, Rx formulator (seeded as Dr. Robert Chen) |
+| Patient | `patient@aethera.com` | `patientpassword` | Booking + personal appointment dashboard |
 
 ---
 
-## 📖 API Documentation Reference
+## API Reference
 
-All endpoints are prefixed with `/api`. All protected endpoints require a Bearer token in the `Authorization` header (`Authorization: Bearer <JWT_TOKEN>`).
+All routes are prefixed with `/api`. Protected routes require `Authorization: Bearer <token>`.
 
-### 1. Authentication
-* **`POST /auth/signup`**: Create a new account.
-* **`POST /auth/login`**: Authenticate credentials and get JWT token + role.
-* **`GET /auth/me`** *(Protected)*: Retrieve logged-in user profile details.
+**Auth**
+- `POST /auth/signup` — create account
+- `POST /auth/login` — authenticate, returns JWT + role
+- `GET /auth/me` — current user profile *(protected)*
 
-### 2. Bookings & Clinical Prescriptions
-* **`GET /bookings`** *(Admin only)*: Fetch all appointment bookings.
-* **`GET /bookings/my`** *(Protected)*: Fetch logged-in user's personal bookings.
-* **`GET /bookings/doctor`** *(Doctor only)*: Retrieve bookings assigned to the logged-in doctor.
-* **`POST /bookings`** *(Protected)*: Schedule a new appointment slot.
-* **`PUT /bookings/:id/status`** *(Admin only)*: Manually toggle status (`Pending` | `Completed` | `Cancelled`).
-* **`PUT /bookings/:id/prescription`** *(Doctor only)*: Commit clinical vitals, diagnosis notes, and medication JSON checklists to a patient's database record.
-* **`POST /bookings/:id/cancel`** *(Protected)*: Allows a patient to cancel their own appointment slot.
+**Bookings**
+- `GET /bookings` — all bookings *(admin)*
+- `GET /bookings/my` — caller's bookings *(protected)*
+- `GET /bookings/doctor` — bookings assigned to caller *(doctor)*
+- `POST /bookings` — create a booking *(protected)*
+- `PUT /bookings/:id/status` — override status *(admin)*
+- `PUT /bookings/:id/prescription` — save vitals + Rx *(doctor)*
+- `POST /bookings/:id/cancel` — cancel own booking *(protected)*
 
-### 3. Queue Telemetry
-* **`GET /queue/sse`**: Initiates a Server-Sent Events stream connecting clients for real-time wait-list syncs.
-* **`GET /queue/status`**: Fetch active serving token indexes and wait totals.
+**Queue**
+- `GET /queue/sse` — SSE stream for live wait-list updates
+- `GET /queue/status` — current serving token + totals
 
-### 4. Clinic Settings
-* **`GET /settings`**: Load system-wide clinic titles, addresses, and banner announcements.
-* **`PUT /settings`** *(Admin only)*: Update clinic details.
+**Settings**
+- `GET /settings` — clinic profile
+- `PUT /settings` — update clinic profile *(admin)*
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
+
+---
+
+Built by [Karthik Ajay](https://github.com/karthikajay04).
